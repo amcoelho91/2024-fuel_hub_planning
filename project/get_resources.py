@@ -47,7 +47,8 @@ def get_resources(case_nr: int) -> dict:
                         }
 
     fuel_cell = {'efficiency': 0.6,
-                 'max_power': 10000}
+                 'max_power': 10000,
+                 'transformation_factor': 0.03}  # 0.03 kgH2/kW at 100% efficiency
 
 
     load_ammonia = [4200 for i in range(0, 24)]

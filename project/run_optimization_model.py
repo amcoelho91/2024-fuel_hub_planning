@@ -40,7 +40,18 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
                                 - ratio_U[t] * m.U_EL_E[i, t] for i in range(0, number_resources)) * c_O2
     f_ammonia = price_ammonia * sum(resources['load_ammonia'][0] for t in range(0, h))
 
-    m.value = Objective(expr= f_E + f_E_reservas + f_water - f_oxyg - f_ammonia
+
+
+    f_planning = get_plannig_costs(m, h, number_resources)/1000000
+
+    if 1:
+        for t in range(0, h):
+            m.c1.add(m.U_E[t] == 0)
+            m.c1.add(m.D_E[t] == 0)
+
+
+    m.value = Objective(expr= (f_E + f_E_reservas + f_water - f_oxyg - f_ammonia) * 365/4 +
+                              f_planning
                         , sense=minimize)
 
     solver = SolverFactory("cplex")
@@ -52,10 +63,42 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
     else:
         print("Did no converge")
 
+    print("___________________________________________")
     print("cost f_E", value(f_E))
     print("cost f_E_reservas", value(f_E_reservas))
     print("cost water", value(f_water))
     print("cost f_oxyg", value(f_oxyg))
-    print("final cost", value(f_E + f_E_reservas + f_water - f_oxyg - f_ammonia))
+    print("final operational costs", value(f_E + f_E_reservas + f_water - f_oxyg - f_ammonia))
+    print("___________________________________________")
+    print("Total investment", value(f_planning))
+    print("Investment PV", value(m.Planning_P_PV[0]))
+    print("Investment EL", value(m.Planning_P_EL_E[0]))
+    print("Investment FC", value(m.Planning_P_FC_E[0]))
+
 
     return 0
+
+
+def get_plannig_costs(m, h, number_resources):
+    f_planning = 0
+
+    # Costs from Optimal planning of distributed hydrogen-based multi-energy systems
+    fuel_cell_costs = 2255 # 10years
+    electrolyzer_costs = 280 # 7 years
+    PV_system_costs = 865 # 20 years
+    hydrogen_storage_costs = 470 #$/kg  20 years
+
+    discount_rate = 0.05
+
+    for i in range(0, number_resources):
+        print(number_resources)
+        f_planning = ((m.b_Planning_P_PV[i] * 920 + m.Planning_P_PV[i] * 920 ) *
+                      (discount_rate/(1 - (1 + discount_rate) ** (-20))))
+        f_planning = f_planning + ((m.b_Planning_P_FC_E[i] * 2255 + m.Planning_P_FC_E[i] * 2255 ) *
+                      (discount_rate/(1 - (1 + discount_rate) ** (-10))))
+        f_planning = f_planning + ((m.b_Planning_P_EL_E[i] * 280 + m.Planning_P_EL_E[i] * 280 ) *
+                      (discount_rate/(1 - (1 + discount_rate) ** (-7))))
+
+
+
+    return f_planning

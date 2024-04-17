@@ -46,7 +46,7 @@ def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case
 
 
         m.c1.add(m.P_E[t] == resources_power)
-        m.c1.add(m.P_E[t] <= 0)
+        #m.c1.add(m.P_E[t] <= 0)
 
 
         U_resources_power = 0
@@ -89,12 +89,17 @@ def create_PV_model(m: ConcreteModel(), h: int, number_resources: int, resources
     print(PV_profile)
     for i in range(0, number_resources):
         for t in range(0, h):
-            m.c1.add(m.P_PV[i, t] <= max_power * PV_profile[t])
+            m.c1.add(m.P_PV[i, t] <= m.Planning_P_PV[i] * PV_profile[t])
             #m.c1.add(m.P_PV[i, t] == m.P_PV_sto_E[i, t] + m.P_PV_EL[i, t] + m.P_PV_market[i, t])
-            m.c1.add(m.U_PV[i, t] <= max_power - m.P_PV[i, t])
+            m.c1.add(m.U_PV[i, t] <= m.Planning_P_PV[i] - m.P_PV[i, t])
             m.c1.add(m.D_PV[i, t] <= m.P_PV[i, t])
             m.c1.add(m.U_PV[i, t] == 0)
             m.c1.add(m.D_PV[i, t] == 0)
+
+            #m.c1.add(m.Planning_P_PV[i] <= 100000 )
+            m.c1.add(m.Planning_P_PV[i] <= 100000 * m.b_Planning_P_PV[i])
+
+
 
     return m
 
@@ -163,16 +168,18 @@ def create_electrolyzer_model(m: ConcreteModel(), h: int, number_resources: int,
             #m.c1.add(m.P_EL_E[j, t] == m.P_PV_EL[j, t] + m.P_sto_E_EL[j, t])
             m.c1.add(m.P_EL_H2[j, t] == transformation_factor * efficiency * m.P_EL_E[j, t])
             m.c1.add(m.P_EL_H2[j, t] == m.P_EL_load[j, t] + m.P_EL_sto_H2[j, t] * 1)
-            m.c1.add(m.P_EL_cooling[j, t] == m.P_EL_E[j, t] / maximum_power * cooling_power)
-            m.c1.add(m.P_EL_E[j, t] <= maximum_power)
+            m.c1.add(m.P_EL_cooling[j, t] == 0)
+            m.c1.add(m.P_EL_E[j, t] <= m.Planning_P_EL_E[j])
             m.c1.add(m.P_EL_E[j, t] <= 2500)
 
             m.c1.add(m.U_EL_E[j, t] <= m.P_EL_E[j, t])
-            m.c1.add(m.D_EL_E[j, t] <= maximum_power - m.P_EL_E[j, t])
+            m.c1.add(m.D_EL_E[j, t] <= m.Planning_P_EL_E[j] - m.P_EL_E[j, t])
             m.c1.add(m.U_EL_H2[j, t] == transformation_factor * efficiency * m.U_EL_E[j, t])
             m.c1.add(m.D_EL_H2[j, t] == transformation_factor * efficiency * m.D_EL_E[j, t])
             m.c1.add(m.U_EL_H2[j, t] == m.U_EL_sto_H2[j, t] * 1 + m.U_EL_load[j, t])
             m.c1.add(m.D_EL_H2[j, t] == m.D_EL_sto_H2[j, t] * 1 + m.D_EL_load[j, t])
+
+        m.c1.add(m.Planning_P_EL_E[j] <= 1000000 * m.b_Planning_P_EL_E[j])
 
 
     return m
@@ -207,7 +214,7 @@ def create_storage_hydrogen_model(m: ConcreteModel(), h: int, number_resources: 
             m.c1.add(m.D_EL_sto_H2[i, t] <= max_power_ch - m.P_sto_H2_ch[i, t])
 
             m.c1.add(m.D_sto_H2_FC[i, t] <= m.P_sto_H2_FC[i, t])
-            m.c1.add(m.U_sto_H2_FC[i, t] <= max_power_ch - m.P_sto_H2_FC[i, t])
+            m.c1.add(m.U_sto_H2_FC[i, t] <= max_power_ch - m.P_sto_H2_dis[i, t])
 
 
             m.c1.add(m.U_EL_sto_H2[i, t] <= max_power_ch - m.P_sto_H2_dis[i, t])
@@ -222,16 +229,19 @@ def create_fuel_cell_model(m: ConcreteModel(), h: int, number_resources: int, re
     ''' Create electrolyzer model '''
     efficiency = resources['fuel_cell']['efficiency']
     maximum_power = resources['fuel_cell']['max_power']
+    transformation_factor = resources['fuel_cell']['transformation_factor']
 
     for j in range(0, number_resources):
         for t in range(0, h):
-            m.c1.add(m.P_FC_E[j, t] == efficiency * m.P_sto_H2_FC[j, t])
-            m.c1.add(m.P_FC_E[j, t] <= maximum_power)
+            m.c1.add(m.P_FC_E[j, t] == (efficiency / transformation_factor) * m.P_sto_H2_FC[j, t])
+            m.c1.add(m.P_FC_E[j, t] <= m.Planning_P_FC_E[j])
 
-            m.c1.add(m.U_FC_E[j, t] == efficiency * m.U_sto_H2_FC[j, t])
-            m.c1.add(m.D_FC_E[j, t] == efficiency * m.D_sto_H2_FC[j, t])
-            m.c1.add(m.U_FC_E[j, t] <= maximum_power - m.P_sto_H2_FC[j, t])
-            m.c1.add(m.D_FC_E[j, t] <= m.P_sto_H2_FC[j, t])
+            m.c1.add(m.U_FC_E[j, t] == (efficiency / transformation_factor) * m.U_sto_H2_FC[j, t])
+            m.c1.add(m.D_FC_E[j, t] == (efficiency / transformation_factor) * m.D_sto_H2_FC[j, t])
+            m.c1.add(m.U_FC_E[j, t] <= m.Planning_P_FC_E[j] - m.P_FC_E[j, t])
+            m.c1.add(m.D_FC_E[j, t] <= m.P_FC_E[j, t])
+
+        m.c1.add(m.Planning_P_FC_E[j] <= 1000000 * m.b_Planning_P_FC_E[j])
 
 
 
