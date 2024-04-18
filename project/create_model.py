@@ -27,6 +27,10 @@ def create_model(m: ConcreteModel, h: int, number_resources: int, resources: dic
 
 def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case: int) -> ConcreteModel:
     ''' Create bidding model '''
+    #m.c1.add(sum(m.P_E[t] for t in range(0, h)) <= 0)
+    for t in range(0, h):
+        m.c1.add(m.P_E[t] <= 0)
+
     for t in range(0, h):
         resources_power = 0
 
@@ -43,10 +47,7 @@ def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case
         resources_power = resources_power + \
                           sum(m.P_FC_E[i, t] for i in range(0, number_resources))
 
-
-
         m.c1.add(m.P_E[t] == resources_power)
-        #m.c1.add(m.P_E[t] <= 0)
 
 
         U_resources_power = 0
@@ -206,7 +207,14 @@ def create_storage_hydrogen_model(m: ConcreteModel(), h: int, number_resources: 
     max_power_ch = resources['hydrogen_storage']['max_charging']
     soc_initial = resources['hydrogen_storage']['initial_soc']
 
+
     for i in range(0, number_resources):
+        max_soc = m.Planning_soc_sto_H2[i]
+        min_soc = m.Planning_soc_sto_H2[i] * 0.05
+        soc_initial = m.Planning_soc_sto_H2[i] * 0.6
+        max_power_dis = m.Planning_P_sto_H2[i]
+        max_power_ch = m.Planning_P_sto_H2[i]
+
         m.c1.add(m.soc_sto_H2[i, 0] == soc_initial)
         m.c1.add(m.soc_sto_H2[i, h] >= soc_initial)
 
@@ -215,10 +223,17 @@ def create_storage_hydrogen_model(m: ConcreteModel(), h: int, number_resources: 
                      (m.P_sto_H2_ch[i, t] * efficiency - m.P_sto_H2_dis[i, t] / efficiency))
             m.c1.add(m.soc_sto_H2[i, t] <= max_soc)
             m.c1.add(m.soc_sto_H2[i, t] >= min_soc)
+
             m.c1.add(m.P_sto_H2_ch[i, t] == m.P_EL_sto_H2[i, t])
             m.c1.add(m.P_sto_H2_dis[i, t] == m.P_sto_H2_FC[i, t] * 1 + m.P_sto_H2_load[i, t])
             m.c1.add(m.P_sto_H2_ch[i, t] <= max_power_ch)
             m.c1.add(m.P_sto_H2_dis[i, t] <= max_power_dis)
+
+            m.c1.add(m.Planning_soc_sto_H2[i] <= 1000000 * m.b_Planning_soc_sto_H2[i])
+            m.c1.add(m.Planning_P_sto_H2[i] <= 1000000 * m.b_Planning_soc_sto_H2[i])
+            m.c1.add(m.Planning_P_sto_H2[i] == 0.5 * m.Planning_soc_sto_H2[i])
+
+
 
 
             m.c1.add(m.U_EL_sto_H2[i, t] <= m.P_sto_H2_ch[i, t])

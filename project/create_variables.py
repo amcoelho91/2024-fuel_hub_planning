@@ -94,6 +94,10 @@ def create_storage_H2_variables(m: ConcreteModel, h: int, number_resources: int)
     m.P_sto_H2_market = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
     m.P_sto_H2_load = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
 
+    m.Planning_soc_sto_H2 = Var(arange(number_resources), domain=NonNegativeReals)
+    m.Planning_P_sto_H2 = Var(arange(number_resources), domain=NonNegativeReals)
+    m.b_Planning_soc_sto_H2 = Var(arange(number_resources), domain=Binary)
+
     return m
 
 
