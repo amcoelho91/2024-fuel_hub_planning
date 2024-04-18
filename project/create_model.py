@@ -16,28 +16,42 @@ def create_model(m: ConcreteModel, h: int, number_resources: int, resources: dic
     m = create_storage_hydrogen_model(m, h, number_resources, resources, case)
     m = create_fuel_cell_model(m, h, number_resources, resources)
 
+    return m
 
-    #m = create_storage_electrical_model(m, h, number_resources, resources)
-    #m = create_market_constraints(m, h, number_resources)
 
-    #m = create_hydrogen_load_model(m, h, number_resources, resources)
+
+#______________________________________________________________________________________________________________________
+#______________________________________________________________________________________________________________________
+def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case: int) -> ConcreteModel:
+    ''' Create bidding model '''
+    policy_number = 2
+    m = create_green_policy(m, h, policy_number)
+
+    m = create_bidding_model_energy(m, h, number_resources)
+    m = create_bidding_model_upward(m, h, number_resources)
+    m = create_bidding_model_downward(m, h, number_resources)
 
     return m
 
 
-def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case: int) -> ConcreteModel:
-    ''' Create bidding model '''
-    #m.c1.add(sum(m.P_E[t] for t in range(0, h)) <= 0)
-    for t in range(0, h):
-        m.c1.add(m.P_E[t] <= 0)
+def create_green_policy(m: ConcreteModel(), h: int, policy_number: int = 0):
+    ''' Define green hydrogen policy '''
+    # 0 - no policy
+    # 1 - yearly policy
+    # 2 - hourly policy
+    if policy_number == 1:
+        m.c1.add(sum(m.P_E[t] for t in range(0, h)) <= 0)
+    elif policy_number == 2:
+        for t in range(0, h):
+            m.c1.add(m.P_E[t] <= 0)
+    return m
 
+
+
+def create_bidding_model_energy(m: ConcreteModel(), h: int, number_resources: int) -> ConcreteModel:
+    ''' Create bidding model for energy '''
     for t in range(0, h):
         resources_power = 0
-
-        #resources_power = resources_power + \
-        #                  sum(m.P_sto_E_ch[i, t] - m.P_sto_E_dis[i, t]
-        #                      for i in range(0, number_resources))
-
         resources_power = resources_power + \
                           sum(- m.P_PV[i, t] for i in range(0, number_resources))
         resources_power = resources_power + \
@@ -49,7 +63,12 @@ def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case
 
         m.c1.add(m.P_E[t] == resources_power)
 
+    return m
 
+
+def create_bidding_model_upward(m: ConcreteModel(), h: int, number_resources: int) -> ConcreteModel:
+    ''' Create bidding model upward '''
+    for t in range(0, h):
         U_resources_power = 0
         U_resources_power = U_resources_power + \
                           sum(m.U_sto_E_dis[i, t] + m.U_sto_E_ch[i, t] +
@@ -58,8 +77,11 @@ def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case
                               m.U_FC_E[i, t]
                               for i in range(0, number_resources))
         m.c1.add(m.U_E[t] == U_resources_power)
+    return m
 
-
+def create_bidding_model_downward(m: ConcreteModel(), h: int, number_resources: int) -> ConcreteModel:
+    ''' Create bidding model downward'''
+    for t in range(0, h):
         D_resources_power = 0
         D_resources_power = D_resources_power + \
                           sum(m.D_sto_E_dis[i, t] + m.D_sto_E_ch[i, t] +
@@ -68,11 +90,10 @@ def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case
                               m.D_FC_E[i, t]
                               for i in range(0, number_resources))
         m.c1.add(m.D_E[t] == D_resources_power)
-
-
-
-
     return m
+
+#______________________________________________________________________________________________________________________
+#______________________________________________________________________________________________________________________
 
 def create_market_constraints(m: ConcreteModel(), h: int, number_resources: int) -> ConcreteModel:
     ''' Create market constraints model '''
@@ -82,6 +103,8 @@ def create_market_constraints(m: ConcreteModel(), h: int, number_resources: int)
 
     return m
 
+#______________________________________________________________________________________________________________________
+#______________________________________________________________________________________________________________________
 def create_PV_model(m: ConcreteModel(), h: int, number_resources: int, resources: dict) -> ConcreteModel:
     ''' Create PV model '''
     max_power = resources['PV']['max_power']
