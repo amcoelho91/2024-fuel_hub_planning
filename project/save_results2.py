@@ -68,6 +68,10 @@ def excel_colouring(excel_file):
             for cell in ws[column]:
                 if any(string in column_zero for string in ['PV', 'EL']):
                     cell.fill = openpyxl.styles.PatternFill(start_color='a4ffa4', end_color='a4ffa4', fill_type='solid')
+                elif any(string in column_zero for string in ['sto_H2']):
+                    cell.fill = openpyxl.styles.PatternFill(start_color='99CCFF', end_color='99CCFF', fill_type='solid')
+                elif any(string in column_zero for string in ['FC']):
+                    cell.fill = openpyxl.styles.PatternFill(start_color='FDE9D9', end_color='FDE9D9', fill_type='solid')
 
     # Save the changes to the Excel file
     flag_excel = 1
