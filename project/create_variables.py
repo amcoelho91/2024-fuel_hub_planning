@@ -42,6 +42,10 @@ def create_storage_electrical_variables(m: ConcreteModel, h: int, number_resourc
     m.b_sto_E = Var(arange(number_resources), arange(h), domain=Binary)
     m.b_sto_E_space = Var(arange(number_resources), arange(h), domain=Binary)
 
+    m.Planning_soc_sto_E = Var(arange(number_resources), domain=NonNegativeReals)
+    m.Planning_P_sto_E = Var(arange(number_resources), domain=NonNegativeReals)
+    m.b_Planning_P_sto_E = Var(arange(number_resources), domain=Binary)
+
     return m
 
 def create_electrolyzer_variables(m: ConcreteModel, h: int, number_resources: int) -> ConcreteModel:

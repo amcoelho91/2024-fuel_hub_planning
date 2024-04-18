@@ -108,12 +108,18 @@ def create_storage_electrical_model(m: ConcreteModel(), h: int, number_resources
     rend_sto_E = resources['electrical_storage']['efficiency']
     soc_sto_E_max = resources['electrical_storage']['max_capacity']
     soc_sto_E_min = resources['electrical_storage']['min_capacity']
+
     P_sto_E_dis_max = resources['electrical_storage']['max_discharging']
     P_sto_E_ch_max = resources['electrical_storage']['max_charging']
     soc_sto_E_init = resources['electrical_storage']['initial_soc']
 
 
     for i in range(0, number_resources):
+        soc_sto_E_max = m.Planning_soc_sto_E[i]
+        soc_sto_E_min = m.Planning_soc_sto_E[i] * 0.05
+        soc_sto_E_init = m.Planning_soc_sto_E[i] * 0.6
+
+
         m.c1.add(m.soc_sto_E[i, 0] == soc_sto_E_init)
         m.c1.add(m.soc_sto_E[i, h] >= soc_sto_E_init)
 
@@ -123,8 +129,13 @@ def create_storage_electrical_model(m: ConcreteModel(), h: int, number_resources
             m.c1.add(m.soc_sto_E[i, t + 1] <= soc_sto_E_max)
             m.c1.add(m.soc_sto_E[i, t + 1] >= soc_sto_E_min)
 
-            m.c1.add(m.P_sto_E_dis[i, t] + m.P_sto_E_dis_space[i, t] <= (1 - m.b_sto_E[i, t]) * P_sto_E_dis_max)
-            m.c1.add(m.P_sto_E_ch[i, t] + m.P_sto_E_ch_space[i, t] <=  m.b_sto_E[i, t] * P_sto_E_ch_max)
+            m.c1.add(m.P_sto_E_dis[i, t] + m.P_sto_E_dis_space[i, t] <= (1 - m.b_sto_E[i, t]) * 10000000000)
+            m.c1.add(m.P_sto_E_ch[i, t] + m.P_sto_E_ch_space[i, t] <=  m.b_sto_E[i, t] * 10000000000)
+            m.c1.add(m.P_sto_E_dis[i, t] + m.P_sto_E_dis_space[i, t] <= m.Planning_P_sto_E[i])
+            m.c1.add(m.P_sto_E_ch[i, t] + m.P_sto_E_ch_space[i, t] <= m.Planning_P_sto_E[i])
+
+            m.c1.add(m.Planning_P_sto_E[i] <= m.b_Planning_P_sto_E[i] * 10000000000)
+            m.c1.add(m.Planning_soc_sto_E[i] <= m.b_Planning_P_sto_E[i] * 10000000000)
 
             if t == h - 1:
                 m.c1.add(m.U_sto_E_dis[i, t] == 0)
@@ -132,9 +143,9 @@ def create_storage_electrical_model(m: ConcreteModel(), h: int, number_resources
                 m.c1.add(m.D_sto_E_dis[i, t] == 0)
                 m.c1.add(m.D_sto_E_ch[i, t] == 0)
 
-            m.c1.add(m.U_sto_E_dis[i, t] <= P_sto_E_dis_max - m.P_sto_E_dis[i, t])
+            m.c1.add(m.U_sto_E_dis[i, t] <= m.Planning_P_sto_E[i] - m.P_sto_E_dis[i, t])
             m.c1.add(m.U_sto_E_ch[i, t] <= m.P_sto_E_ch[i, t])
-            m.c1.add(m.D_sto_E_ch[i, t] <= P_sto_E_ch_max - m.P_sto_E_ch[i, t])
+            m.c1.add(m.D_sto_E_ch[i, t] <= m.Planning_P_sto_E[i] - m.P_sto_E_ch[i, t])
             m.c1.add(m.D_sto_E_dis[i, t] <= m.P_sto_E_dis[i, t])
 
             m.c1.add(m.U_sto_E_dis[i, t] / rend_sto_E + m.U_sto_E_ch[i, t] * rend_sto_E <= m.soc_sto_E[i, t + 1] - soc_sto_E_min)

@@ -42,7 +42,7 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
 
 
 
-    f_planning = get_plannig_costs(m, h, number_resources)/1000000
+    f_planning = get_plannig_costs(m, h, number_resources)
 
     if 1:
         for t in range(0, h):
@@ -51,7 +51,7 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
 
 
     m.value = Objective(expr= (f_E + f_E_reservas + f_water - f_oxyg - f_ammonia) * 365/4 +
-                              f_planning
+                              f_planning * 10000000000
                         , sense=minimize)
 
     solver = SolverFactory("cplex")
@@ -70,11 +70,11 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
     print("cost f_oxyg", value(f_oxyg))
     print("final operational costs", value(f_E + f_E_reservas + f_water - f_oxyg - f_ammonia))
     print("___________________________________________")
-    print("Total investment", value(f_planning))
+    print("Total investment", value(f_planning)/1000000)
     print("Investment PV", value(m.Planning_P_PV[0]))
     print("Investment EL", value(m.Planning_P_EL_E[0]))
     print("Investment FC", value(m.Planning_P_FC_E[0]))
-
+    print("Investment Electrical Sto - SOC:", value(m.Planning_soc_sto_E[0]), " P:", value(m.Planning_P_sto_E[0]))
 
     return 0
 
@@ -98,6 +98,10 @@ def get_plannig_costs(m, h, number_resources):
                       (discount_rate/(1 - (1 + discount_rate) ** (-10))))
         f_planning = f_planning + ((m.b_Planning_P_EL_E[i] * 280 + m.Planning_P_EL_E[i] * 280 ) *
                       (discount_rate/(1 - (1 + discount_rate) ** (-7))))
+        f_planning = f_planning + ((m.b_Planning_P_EL_E[i] * (150 + 80) + m.Planning_soc_sto_E[i] * 150 +
+                                    m.Planning_P_sto_E[i] * 80) *
+                      (discount_rate/(1 - (1 + discount_rate) ** (-20))))
+
 
 
 
