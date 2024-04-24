@@ -1,7 +1,8 @@
 from numpy import *
 from pyomo.environ import *
+import time
 
-def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, resources: dict, prices: dict, case: int) -> None:
+def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, resources: dict, prices: dict) -> None:
     ''' Run optimization model as per the objective function '''
     c_H2O = resources['electrolyzer']['c_H2O']
     c_O2 = resources['electrolyzer']['c_O2']
@@ -25,35 +26,30 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
         P_H2O.append(sum(m.P_EL_E[i, t] for i in range(0, number_resources)) * c_H2O)
         P_O2.append(sum(m.P_EL_E[i, t] for i in range(0, number_resources)) * c_O2)
 
-    f_E = sum(price_E[t] * m.P_E[t]
-              for t in range(0, h))
-    f_E_reservas = sum(
-              - price_B[t] * (m.U_E[t] + m.D_E[t]) +
-              (price_E_D[t] * ratio_D[t] * m.D_E[t] -
-               price_E_U[t] * ratio_U[t] * m.U_E[t]) for t in range(0, h))
-
-    f_water = price_water * sum(m.P_EL_E[i, t] +
-                                ratio_D[t] * m.D_EL_E[i, t]
-                                - ratio_U[t] * m.U_EL_E[i, t] for i in range(0, number_resources)) * c_H2O
-    f_oxyg = price_oxyg * sum(m.P_EL_E[i, t] +
-                                ratio_D[t] * m.D_EL_E[i, t]
-                                - ratio_U[t] * m.U_EL_E[i, t] for i in range(0, number_resources)) * c_O2
+    #---------------------------------------------------------------------------------------------------------------
+    f_E = sum(price_E[t] * m.P_E[t] for t in range(0, h))
+    f_E_reservas = sum( - price_B[t] * (m.U_E[t] + m.D_E[t]) +
+                        (price_E_D[t] * ratio_D[t] * m.D_E[t] - price_E_U[t] * ratio_U[t] * m.U_E[t])
+                        for t in range(0, h))
+    f_water = price_water * sum(m.P_EL_E[i, t] + ratio_D[t] * m.D_EL_E[i, t] - ratio_U[t] * m.U_EL_E[i, t]
+                              for i in range(0, number_resources)) * c_H2O
+    f_oxyg = price_oxyg * sum(m.P_EL_E[i, t] + ratio_D[t] * m.D_EL_E[i, t] - ratio_U[t] * m.U_EL_E[i, t]
+                              for i in range(0, number_resources)) * c_O2
     f_ammonia = price_ammonia * sum(resources['load_ammonia'][0] for t in range(0, h))
-
-
 
     f_planning = get_plannig_costs(m, h, number_resources)
 
-    if 0:
-        for t in range(0, h):
-            m.c1.add(m.U_E[t] == 0)
-            m.c1.add(m.D_E[t] == 0)
+    m.c1.add(f_planning <= 20 * 1000 * 1000)
+    m.c1.add(m.b_Planning_P_sto_E[0] == 1)
 
 
-    m.value = Objective(expr= (f_E + f_E_reservas + f_water - f_oxyg - f_ammonia) * 365/4 +
+    yearly_multiplier = 365 / (h / 24)
+
+    #---------------------------------------------------------------------------------------------------------------
+    m.value = Objective(expr= (f_E + f_E_reservas + f_water - f_oxyg - f_ammonia) * yearly_multiplier +
                               f_planning
                         , sense=minimize)
-
+    start_time = time.time()
     solver = SolverFactory("cplex")
     results = solver.solve(m, tee=False)
 
@@ -62,27 +58,16 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
         print("Flow optimized")
     else:
         print("Did no converge")
+    print("Execution time: {:.2f} seconds".format(time.time() - start_time))
+    #---------------------------------------------------------------------------------------------------------------
 
-    print("___________________________________________")
-    print("cost f_E", value(f_E))
-    print("cost f_E_reservas", value(f_E_reservas))
-    print("cost water", value(f_water))
-    print("cost f_oxyg", value(f_oxyg))
-    print("final operational costs", value(f_E + f_E_reservas + f_water - f_oxyg - f_ammonia))
-    print("___________________________________________")
-    print("Total investment", value(f_planning)/1000000)
-    print("Investment PV", value(m.Planning_P_PV[0]))
-    print("Investment EL", value(m.Planning_P_EL_E[0]))
-    print("Investment FC", value(m.Planning_P_FC_E[0]))
-    print("Investment Electrical Sto - SOC:", value(m.Planning_soc_sto_E[0]), " P:", value(m.Planning_P_sto_E[0]))
-    print("Investment Hydrogen Sto - SOC:", value(m.Planning_soc_sto_H2[0]), " P:", value(m.Planning_P_sto_H2[0]))
+    print_results(m, f_E, f_E_reservas, f_water, f_oxyg, f_ammonia, f_planning)
 
     return 0
 
 
-def get_plannig_costs(m, h, number_resources):
-    f_planning = 0
-
+def get_plannig_costs(m: ConcreteModel, h: int, number_resources: int) -> ConcreteModel():
+    ''' Get planning costs '''
     # Costs from Optimal planning of distributed hydrogen-based multi-energy systems
     fuel_cell_costs = 2255 # 10years
     electrolyzer_costs = 280 # 7 years
@@ -90,7 +75,7 @@ def get_plannig_costs(m, h, number_resources):
     hydrogen_storage_costs = 470 #$/kg  20 years
 
     discount_rate = 0.05
-
+    f_planning = 0
     for i in range(0, number_resources):
         print(number_resources)
         f_planning = ((m.b_Planning_P_PV[i] * 920 + m.Planning_P_PV[i] * 920 ) *
@@ -105,6 +90,19 @@ def get_plannig_costs(m, h, number_resources):
         f_planning = f_planning + ((m.b_Planning_soc_sto_H2[i] * (470) + m.Planning_soc_sto_H2[i] * 470) *
                       (discount_rate/(1 - (1 + discount_rate) ** (-20))))
 
-
-
     return f_planning
+
+def print_results(m: ConcreteModel(), f_E, f_E_reservas, f_water, f_oxyg, f_ammonia, f_planning) -> None:
+    print("___________________________________________")
+    print("cost f_E", value(f_E))
+    print("cost f_E_reservas", value(f_E_reservas))
+    print("cost water", value(f_water))
+    print("cost f_oxyg", value(f_oxyg))
+    print("final operational costs", value(f_E + f_E_reservas + f_water - f_oxyg - f_ammonia))
+    print("___________________________________________")
+    print("Total investment", value(f_planning)/1000000)
+    print("Investment PV", value(m.Planning_P_PV[0]))
+    print("Investment EL", value(m.Planning_P_EL_E[0]))
+    print("Investment FC", value(m.Planning_P_FC_E[0]))
+    print("Investment Electrical Sto - SOC:", value(m.Planning_soc_sto_E[0]), " P:", value(m.Planning_P_sto_E[0]))
+    print("Investment Hydrogen Sto - SOC:", value(m.Planning_soc_sto_H2[0]), " P:", value(m.Planning_P_sto_H2[0]))

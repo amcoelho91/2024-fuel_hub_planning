@@ -2,18 +2,19 @@ from numpy import *
 from pyomo.environ import *
 
 
-def create_model(m: ConcreteModel, h: int, number_resources: int, resources: dict, case: int) -> ConcreteModel:
+def create_model(m: ConcreteModel, h: int, number_resources: int, resources: dict,
+                 policy_number: int, reserves_participation: int) -> ConcreteModel:
     ''' Create models of resources '''
 
-    m = create_bidding_model(m, h, number_resources, case)
-    m = create_market_constraints(m, h, number_resources)
+    m = create_bidding_model(m, h, number_resources, policy_number)
+    m = create_market_constraints(m, h, number_resources, reserves_participation)
 
     m = create_PV_model(m, h, number_resources, resources)
     m = create_storage_electrical_model(m, h, number_resources, resources)
 
     m = create_electrolyzer_model(m, h, number_resources, resources)
     m = create_hydrogen_load_model(m, h, number_resources, resources)
-    m = create_storage_hydrogen_model(m, h, number_resources, resources, case)
+    m = create_storage_hydrogen_model(m, h, number_resources, resources)
     m = create_fuel_cell_model(m, h, number_resources, resources)
 
     return m
@@ -22,9 +23,8 @@ def create_model(m: ConcreteModel, h: int, number_resources: int, resources: dic
 
 #______________________________________________________________________________________________________________________
 #______________________________________________________________________________________________________________________
-def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, case: int) -> ConcreteModel:
+def create_bidding_model(m: ConcreteModel(), h: int, number_resources: int, policy_number: int) -> ConcreteModel:
     ''' Create bidding model '''
-    policy_number = 2
     m = create_green_policy(m, h, policy_number)
 
     m = create_bidding_model_energy(m, h, number_resources)
@@ -95,11 +95,17 @@ def create_bidding_model_downward(m: ConcreteModel(), h: int, number_resources: 
 #______________________________________________________________________________________________________________________
 #______________________________________________________________________________________________________________________
 
-def create_market_constraints(m: ConcreteModel(), h: int, number_resources: int) -> ConcreteModel:
+def create_market_constraints(m: ConcreteModel(), h: int, number_resources: int,
+                              reserves_participation: int) -> ConcreteModel:
     ''' Create market constraints model '''
     for i in range(0, number_resources):
         for t in range(0, h):
             m.c1.add(m.U_E[t] == 2 * m.D_E[t])
+
+    if 1 - reserves_participation:
+        for t in range(0, h):
+            m.c1.add(m.U_E[t] == 0)
+            m.c1.add(m.D_E[t] == 0)
 
     return m
 
@@ -221,7 +227,7 @@ def create_electrolyzer_model(m: ConcreteModel(), h: int, number_resources: int,
 
 
 
-def create_storage_hydrogen_model(m: ConcreteModel(), h: int, number_resources: int, resources: dict, case: int) -> ConcreteModel:
+def create_storage_hydrogen_model(m: ConcreteModel(), h: int, number_resources: int, resources: dict) -> ConcreteModel:
     ''' Create hydrogen storage model '''
     efficiency = resources['hydrogen_storage']['efficiency']
     max_soc = resources['hydrogen_storage']['max_capacity']

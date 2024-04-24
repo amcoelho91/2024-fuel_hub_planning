@@ -17,19 +17,24 @@ from termcolor import colored, cprint
 def main():
     ''' Function of the aggregator optimization model '''
 
-    case_nr = 3
+    case_nr = 2
     if case_nr == 1:
         h = 24 * 365
         h = 24 * 1 * 4
     elif case_nr == 2:
-        h = 24 * 7 * 4
+        h = 24 * 1 * 8
     else:
         h = 24 * 1 * 4
 
+    policy_number = 1  # 0 - no policy || 1 - yearly policy || 2 - hourly policy
+    reserves_participation = 1  # 0 - no participation || 1 - participation
+
     number_resources = 1
 
+    #----------------------------------------------------------------------------------------
+
     print("... Get data ...")
-    resources = get_resources(case_nr)
+    resources = get_resources(case_nr, h)
     prices = get_prices(case_nr, h)
 
     # Create pyomo model
@@ -39,9 +44,9 @@ def main():
 
     # Run aggregator model
     m = create_variables(m, h, number_resources)
-    m = create_model(m, h, number_resources, resources, case_nr)
+    m = create_model(m, h, number_resources, resources, policy_number, reserves_participation)
     print("... Run model ...")
-    run_optimization_model(m, h, number_resources, resources, prices, case_nr)
+    run_optimization_model(m, h, number_resources, resources, prices)
 
     print("... Save results ...")
     #save_results(m, h, case_nr, prices, resources, number_resources)
