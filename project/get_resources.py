@@ -1,8 +1,8 @@
 from numpy import *
-from pyomo.environ import *
 import pandas as pd
 from pathlib import Path
-import json
+from xlrd import *
+
 
 INPUT_DIR = Path(__file__).parent.parent / "data_input"
 
@@ -51,7 +51,7 @@ def get_resources(hours: int) -> dict:
                  'transformation_factor': 0.03}  # 0.03 kgH2/kW at 100% efficiency
 
 
-    load_hydrogen = [4200 for i in range(0, hours)]
+    load_hydrogen = get_load_profile(hours)
 
     resources = {       'PV': PV,
                         'electrical_storage': electrical_storage,
@@ -61,7 +61,7 @@ def get_resources(hours: int) -> dict:
                         'hydrogen_storage': hydrogen_storage,
 
 
-                        'load_ammonia': load_ammonia
+                        'load_hydrogen': load_hydrogen
                  }
 
     return resources
@@ -74,8 +74,20 @@ def get_PV_profile() -> list:
     df = pd.read_csv(INPUT_DIR / 'PV_profile_data_8days.csv')
     PV_profile = df['2'].values.tolist()
     PV_profile = [i / max(PV_profile) for i in PV_profile]
-    PV_profile.reverse()
 
     print(PV_profile)
     print(max(PV_profile))
     return PV_profile
+
+def get_load_profile(h: int) -> list:
+    ''' Load PV data from JSON and read the swflx values'''
+
+    book_networks = INPUT_DIR / "Hydrogen_load_8days.xls"
+    wb_networks = open_workbook(book_networks)
+    xl_sheet = wb_networks.sheet_by_index(0)
+
+    hydrogen_load = [xl_sheet.cell(1 + t, 2).value for t in range(0, h)]
+
+    print("hydrogen_load", hydrogen_load)
+    print(max(hydrogen_load))
+    return hydrogen_load

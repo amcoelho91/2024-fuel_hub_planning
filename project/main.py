@@ -18,15 +18,9 @@ def main():
     ''' Function of the aggregator optimization model '''
 
     case_nr = 2
-    if case_nr == 1:
-        h = 24 * 365
-        h = 24 * 1 * 4
-    elif case_nr == 2:
-        h = 24 * 1 * 8
-    else:
-        h = 24 * 1 * 4
+    h = 24 * 1 * 8
 
-    policy_number = 1  # 0 - no policy || 1 - yearly policy || 2 - hourly policy
+    policy_number = 0  # 0 - no policy || 1 - yearly policy || 2 - hourly policy
     reserves_participation = 1  # 0 - no participation || 1 - participation
 
     number_resources = 1
@@ -34,8 +28,8 @@ def main():
     #----------------------------------------------------------------------------------------
 
     print("... Get data ...")
-    resources = get_resources(case_nr, h)
-    prices = get_prices(case_nr, h)
+    resources = get_resources(h)
+    prices = get_prices(h)
 
     # Create pyomo model
     print("... Create model  ...")

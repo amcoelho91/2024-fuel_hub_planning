@@ -35,12 +35,13 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
                               for i in range(0, number_resources)) * c_H2O
     f_oxyg = price_oxyg * sum(m.P_EL_E[i, t] + ratio_D[t] * m.D_EL_E[i, t] - ratio_U[t] * m.U_EL_E[i, t]
                               for i in range(0, number_resources)) * c_O2
-    f_ammonia = price_ammonia * sum(resources['load_ammonia'][0] for t in range(0, h))
+    f_ammonia = price_ammonia * sum(resources['load_hydrogen'][0] for t in range(0, h))
 
     f_planning = get_plannig_costs(m, h, number_resources)
 
-    m.c1.add(f_planning <= 20 * 1000 * 1000)
-    m.c1.add(m.b_Planning_P_sto_E[0] == 1)
+    m.c1.add(f_planning <= 30 * 1000 * 1000)
+    #m.c1.add(m.b_Planning_P_sto_E[0] == 1)
+    #m.c1.add(m.Planning_P_EL_E[0] == 3000)
 
 
     yearly_multiplier = 365 / (h / 24)

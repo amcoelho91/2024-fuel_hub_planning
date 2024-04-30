@@ -159,13 +159,13 @@ def create_storage_electrical_model(m: ConcreteModel(), h: int, number_resources
             m.c1.add(m.soc_sto_E[i, t + 1] <= soc_sto_E_max)
             m.c1.add(m.soc_sto_E[i, t + 1] >= soc_sto_E_min)
 
-            m.c1.add(m.P_sto_E_dis[i, t] + m.P_sto_E_dis_space[i, t] <= (1 - m.b_sto_E[i, t]) * 10000000000)
-            m.c1.add(m.P_sto_E_ch[i, t] + m.P_sto_E_ch_space[i, t] <=  m.b_sto_E[i, t] * 10000000000)
+            m.c1.add(m.P_sto_E_dis[i, t] + m.P_sto_E_dis_space[i, t] <= (1 - m.b_sto_E[i, t]) * 30 * 1000)
+            m.c1.add(m.P_sto_E_ch[i, t] + m.P_sto_E_ch_space[i, t] <=  m.b_sto_E[i, t] * 30 * 1000)
             m.c1.add(m.P_sto_E_dis[i, t] + m.P_sto_E_dis_space[i, t] <= m.Planning_P_sto_E[i])
             m.c1.add(m.P_sto_E_ch[i, t] + m.P_sto_E_ch_space[i, t] <= m.Planning_P_sto_E[i])
 
-            m.c1.add(m.Planning_P_sto_E[i] <= m.b_Planning_P_sto_E[i] * 10000000000)
-            m.c1.add(m.Planning_soc_sto_E[i] <= m.b_Planning_P_sto_E[i] * 10000000000)
+            m.c1.add(m.Planning_P_sto_E[i] <= m.b_Planning_P_sto_E[i] * 30 * 1000)
+            m.c1.add(m.Planning_soc_sto_E[i] <= m.b_Planning_P_sto_E[i] * 30 * 1000)
 
             if t == h - 1:
                 m.c1.add(m.U_sto_E_dis[i, t] == 0)
@@ -188,9 +188,9 @@ def create_storage_electrical_model(m: ConcreteModel(), h: int, number_resources
                 m.P_sto_E_ch_space[i, t + 1] + m.P_sto_E_dis_space[i, t + 1])
 
             m.c1.add(m.U_sto_E_ch[i, t] + m.U_sto_E_dis[i, t] + m.D_sto_E_ch[i, t] + m.D_sto_E_dis[i, t] <=
-                m.b_sto_E_space[i, t] * 10000000)
+                m.b_sto_E_space[i, t] * 30 * 1000)
 
-            m.c1.add(m.P_sto_E_ch_space[i, t] + m.P_sto_E_dis_space[i, t] <= (1 - m.b_sto_E_space[i, t]) * 10000000)
+            m.c1.add(m.P_sto_E_ch_space[i, t] + m.P_sto_E_dis_space[i, t] <= (1 - m.b_sto_E_space[i, t]) * 30 * 1000)
 
 
     return m
@@ -211,14 +211,14 @@ def create_electrolyzer_model(m: ConcreteModel(), h: int, number_resources: int,
             m.c1.add(m.P_EL_H2[j, t] == m.P_EL_load[j, t] + m.P_EL_sto_H2[j, t] * 1)
             m.c1.add(m.P_EL_cooling[j, t] == 0)
             m.c1.add(m.P_EL_E[j, t] <= m.Planning_P_EL_E[j])
-            m.c1.add(m.P_EL_E[j, t] <= 2500)
+            m.c1.add(m.P_EL_E[j, t] <= 100 * 1000 * 1000)
 
             m.c1.add(m.U_EL_E[j, t] <= m.P_EL_E[j, t])
             m.c1.add(m.D_EL_E[j, t] <= m.Planning_P_EL_E[j] - m.P_EL_E[j, t])
             m.c1.add(m.U_EL_H2[j, t] == transformation_factor * efficiency * m.U_EL_E[j, t])
             m.c1.add(m.D_EL_H2[j, t] == transformation_factor * efficiency * m.D_EL_E[j, t])
-            m.c1.add(m.U_EL_H2[j, t] == m.U_EL_sto_H2[j, t] * 1 + m.U_EL_load[j, t])
-            m.c1.add(m.D_EL_H2[j, t] == m.D_EL_sto_H2[j, t] * 1 + m.D_EL_load[j, t])
+            m.c1.add(m.U_EL_H2[j, t] == m.U_EL_sto_H2[j, t] * 1)
+            m.c1.add(m.D_EL_H2[j, t] == m.D_EL_sto_H2[j, t] * 1)
 
         m.c1.add(m.Planning_P_EL_E[j] <= 1000000 * m.b_Planning_P_EL_E[j])
 
@@ -260,7 +260,7 @@ def create_storage_hydrogen_model(m: ConcreteModel(), h: int, number_resources: 
 
             m.c1.add(m.Planning_soc_sto_H2[i] <= 1000000 * m.b_Planning_soc_sto_H2[i])
             m.c1.add(m.Planning_P_sto_H2[i] <= 1000000 * m.b_Planning_soc_sto_H2[i])
-            m.c1.add(m.Planning_P_sto_H2[i] == 0.5 * m.Planning_soc_sto_H2[i])
+            #m.c1.add(m.Planning_P_sto_H2[i] == 0.5 * m.Planning_soc_sto_H2[i])
 
 
 
@@ -308,8 +308,8 @@ def create_hydrogen_load_model(m: ConcreteModel(), h: int, number_resources: int
     for i in range(0, number_resources):
         for t in range(0, h):
             #m.c1.add(resources['load_ammonia'][0]/100 == m.P_EL_load[i, t] + m.P_sto_H2_load[i, t] * 0)
-            m.c1.add(resources['load_ammonia'][0] / 100 == m.P_EL_load[i, t] + m.P_sto_H2_load[i, t] * 1 - m.U_EL_load[i, t])
-            m.c1.add(resources['load_ammonia'][0] / 100 == m.P_EL_load[i, t] + m.P_sto_H2_load[i, t] * 1 + m.D_EL_load[i, t])
+            m.c1.add(resources['load_hydrogen'][t] == m.P_EL_load[i, t] + m.P_sto_H2_load[i, t] * 1)
+            m.c1.add(resources['load_hydrogen'][t] == m.P_EL_load[i, t] + m.P_sto_H2_load[i, t] * 1)
 
     return m
 
