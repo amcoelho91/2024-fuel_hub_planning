@@ -31,7 +31,7 @@ def get_prices(h: int) -> dict:
                 'hydrogen': 8,          # €/kg
                 'water': 0.0014,        # €/L  ->   1.4 €/m3 = 0.0014 €/L
                 'oxygen': 0.15,         # €/kg ->   150 €/ton = 0.15 €/kg
-                'ammonia': 1.278}       # €/kg ->   1278 €/ton = 1.278 €/kg
+                'hydrogen': 3}       # €/kg ->   hydrogen
 
     return prices
 

@@ -40,7 +40,8 @@ def create_green_policy(m: ConcreteModel(), h: int, policy_number: int = 0):
     # 1 - yearly policy
     # 2 - hourly policy
     if policy_number == 1:
-        m.c1.add(sum(m.P_E[t] for t in range(0, h)) <= 0)
+        #m.c1.add(sum(m.P_E[t] for t in range(0, h)) <= 0)
+        m.c1.add(sum(m.P_EL_E[0, t] for t in range(0,h)) <= sum(m.P_PV[0, t] for t in range(0, h)))
     elif policy_number == 2:
         for t in range(0, h):
             m.c1.add(m.P_E[t] <= 0)
@@ -59,7 +60,7 @@ def create_bidding_model_energy(m: ConcreteModel(), h: int, number_resources: in
         resources_power = resources_power + \
                           sum(m.P_EL_E[i, t] + m.P_EL_cooling[i, t] for i in range(0, number_resources))
         resources_power = resources_power + \
-                          sum(m.P_FC_E[i, t] for i in range(0, number_resources))
+                          sum(-m.P_FC_E[i, t] for i in range(0, number_resources))
 
         m.c1.add(m.P_E[t] == resources_power)
 

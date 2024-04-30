@@ -17,11 +17,10 @@ from termcolor import colored, cprint
 def main():
     ''' Function of the aggregator optimization model '''
 
-    case_nr = 2
     h = 24 * 1 * 8
 
-    policy_number = 0  # 0 - no policy || 1 - yearly policy || 2 - hourly policy
-    reserves_participation = 1  # 0 - no participation || 1 - participation
+    policy_number = 1  # 0 - no policy || 1 - yearly policy || 2 - hourly policy
+    reserves_participation = 0  # 0 - no participation || 1 - participation
 
     number_resources = 1
 
@@ -43,8 +42,8 @@ def main():
     run_optimization_model(m, h, number_resources, resources, prices)
 
     print("... Save results ...")
-    #save_results(m, h, case_nr, prices, resources, number_resources)
-    save_results2(m, h, case_nr, prices, resources, number_resources)
+    #save_results(m, h, 2, prices, resources, number_resources)
+    save_results2(m, h, 2, prices, resources, number_resources)
 
     print("")
     show_figure_option = 1
