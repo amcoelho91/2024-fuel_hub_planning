@@ -43,8 +43,12 @@ def create_green_policy(m: ConcreteModel(), h: int, policy_number: int = 0):
         #m.c1.add(sum(m.P_E[t] for t in range(0, h)) <= 0)
         m.c1.add(sum(m.P_EL_E[0, t] for t in range(0,h)) <= sum(m.P_PV[0, t] for t in range(0, h)))
     elif policy_number == 2:
-        for t in range(0, h):
-            m.c1.add(m.P_E[t] <= 0)
+        for day in range(0, int(h / 24)):
+            for t in range(0 + 24 * day, 24 + 24 * day):
+                # m.c1.add(m.P_E[t] <= 0)
+                1
+            m.c1.add(sum(m.P_EL_E[0, t] for t in range(0 + 24 * day, 24 + 24 * day)) <=
+                     sum(m.P_PV[0, t] for t in range(0 + 24 * day, 24 + 24 * day)))
     return m
 
 

@@ -25,7 +25,7 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
     for t in range(0, h):
         P_H2O.append(sum(m.P_EL_E[i, t] for i in range(0, number_resources)) * c_H2O)
         P_O2.append(sum(m.P_EL_E[i, t] for i in range(0, number_resources)) * c_O2)
-
+    print("price_E_market",price_E_market)
     #---------------------------------------------------------------------------------------------------------------
     f_E = sum(price_E_market[t] * m.P_E[t] for t in range(0, h))
     f_E_reservas = sum( - price_B[t] * (m.U_E[t] + m.D_E[t]) +
@@ -39,9 +39,9 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
                               for i in range(0, number_resources)) for t in range(0, h)) * transformation_factor * efficiency * c_O2
     f_hydrogen = price_hydrogen * sum(resources['load_hydrogen'][t] for t in range(0, h))
 
-    f_planning = get_plannig_costs(m, h, number_resources)
+    investment_value = 5 * 1000 * 1000
+    f_planning = get_plannig_costs(m, h, number_resources, investment_value)
 
-    m.c1.add(f_planning <= 30 * 1000 * 1000)
     #m.c1.add(m.b_Planning_P_sto_E[0] == 1)
     #m.c1.add(m.Planning_P_EL_E[0] == 3000)
 
@@ -72,7 +72,7 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
     return 0
 
 
-def get_plannig_costs(m: ConcreteModel, h: int, number_resources: int) -> ConcreteModel():
+def get_plannig_costs(m: ConcreteModel, h: int, number_resources: int, investment_value: int) -> ConcreteModel():
     ''' Get planning costs '''
     # Costs from Optimal planning of distributed hydrogen-based multi-energy systems
     fuel_cell_costs = 2255 # €/kW 10years
@@ -83,7 +83,6 @@ def get_plannig_costs(m: ConcreteModel, h: int, number_resources: int) -> Concre
     discount_rate = 0.05
     f_planning = 0
     for i in range(0, number_resources):
-        print(number_resources)
         f_planning = ((m.b_Planning_P_PV[i] * 920 + m.Planning_P_PV[i] * 920 ) *
                       (discount_rate/(1 - (1 + discount_rate) ** (-20))))
         f_planning = f_planning + ((m.b_Planning_P_FC_E[i] * 2255 + m.Planning_P_FC_E[i] * 2255 ) *
@@ -95,6 +94,8 @@ def get_plannig_costs(m: ConcreteModel, h: int, number_resources: int) -> Concre
                       (discount_rate/(1 - (1 + discount_rate) ** (-20))))
         f_planning = f_planning + ((m.b_Planning_soc_sto_H2[i] * (470) + m.Planning_soc_sto_H2[i] * 470) *
                       (discount_rate/(1 - (1 + discount_rate) ** (-20))))
+
+    m.c1.add(f_planning <= investment_value)
 
     return f_planning
 
