@@ -19,7 +19,7 @@ def main():
 
     h = 24 * 1 * 8
 
-    policy_number = 2  # 0 - no policy || 1 - yearly policy || 2 - hourly policy
+    policy_number = 1  # 0 - no policy || 1 - yearly policy || 2 - hourly policy
     reserves_participation = 1  # 0 - no participation || 1 - participation
 
     number_resources = 1

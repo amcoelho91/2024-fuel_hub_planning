@@ -39,8 +39,9 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
                               for i in range(0, number_resources)) for t in range(0, h)) * transformation_factor * efficiency * c_O2
     f_hydrogen = price_hydrogen * sum(resources['load_hydrogen'][t] for t in range(0, h))
 
-    investment_value = 5 * 1000 * 1000
-    f_planning = get_plannig_costs(m, h, number_resources, investment_value)
+    investment_value = 100 * 1000 * 1000
+    m = limit_investment(m, number_resources, investment_value)
+    f_planning_yearly = get_plannig_costs(m, h, number_resources, investment_value)
 
     #m.c1.add(m.b_Planning_P_sto_E[0] == 1)
     #m.c1.add(m.Planning_P_EL_E[0] == 3000)
@@ -50,7 +51,7 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
 
     #---------------------------------------------------------------------------------------------------------------
     m.value = Objective(expr= (f_E + f_E_reservas + f_water - f_oxyg - f_hydrogen) * yearly_multiplier +
-                              f_planning
+                              f_planning_yearly
                         , sense=minimize)
     start_time = time.time()
     solver = SolverFactory("cplex")
@@ -64,13 +65,26 @@ def run_optimization_model(m: ConcreteModel, h: int, number_resources: int, reso
     print("Execution time={:.2f}".format(time.time() - start_time))
     #---------------------------------------------------------------------------------------------------------------
 
-    print_results(m, f_E, f_E_reservas, f_water, f_oxyg, f_hydrogen, f_planning, yearly_multiplier)
+    print_results(m, f_E, f_E_reservas, f_water, f_oxyg, f_hydrogen, f_planning_yearly, yearly_multiplier)
 
     print(value(sum(sum(m.P_EL_E[i, t]
                               for i in range(0, number_resources)) for t in range(0, h))))
 
     return 0
 
+def limit_investment(m: ConcreteModel(), number_resources: int, investment_value: int):
+    f_planning = 0
+    for i in range(0, number_resources):
+        f_planning = f_planning + (m.b_Planning_P_PV[i] * 920 + m.Planning_P_PV[i] * 920)
+        f_planning = f_planning + (m.b_Planning_P_FC_E[i] * 2255 + m.Planning_P_FC_E[i] * 2255)
+        f_planning = f_planning + (m.b_Planning_P_EL_E[i] * 280 + m.Planning_P_EL_E[i] * 280)
+        f_planning = f_planning + (m.b_Planning_P_sto_E[i] * (150 + 80) + m.Planning_soc_sto_E[i] * 150 +
+                                    m.Planning_P_sto_E[i] * 80)
+        f_planning = f_planning + (m.b_Planning_soc_sto_H2[i] * (470) + m.Planning_soc_sto_H2[i] * 470)
+
+    m.c1.add(f_planning <= investment_value)
+
+    return m
 
 def get_plannig_costs(m: ConcreteModel, h: int, number_resources: int, investment_value: int) -> ConcreteModel():
     ''' Get planning costs '''
@@ -95,7 +109,7 @@ def get_plannig_costs(m: ConcreteModel, h: int, number_resources: int, investmen
         f_planning = f_planning + ((m.b_Planning_soc_sto_H2[i] * (470) + m.Planning_soc_sto_H2[i] * 470) *
                       (discount_rate/(1 - (1 + discount_rate) ** (-20))))
 
-    m.c1.add(f_planning <= investment_value)
+    #m.c1.add(f_planning <= investment_value)
 
     return f_planning
 
