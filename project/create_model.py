@@ -43,8 +43,10 @@ def create_green_policy(m: ConcreteModel(), h: int, policy_number: int = 0):
         #m.c1.add(sum(m.P_E[t] for t in range(0, h)) <= 0)
         m.c1.add(sum(m.P_EL_E[0, t] for t in range(0,h)) <= sum(m.P_PV[0, t] for t in range(0, h)))
     elif policy_number == 2:
-        for t in range(0, h):
-            m.c1.add(m.P_E[t] <= 0)
+        for day in range(0, int(h/24)):
+            for t in range(0 + 24 * day, 24 + 24 * day):
+                #m.c1.add(m.P_E[t] <= 0)
+                m.c1.add(sum(m.P_EL_E[0, t] for t in range(0, h)) <= sum(m.P_PV[0, t] for t in range(0, h)))
     return m
 
 
@@ -153,6 +155,7 @@ def create_storage_electrical_model(m: ConcreteModel(), h: int, number_resources
 
         m.c1.add(m.soc_sto_E[i, 0] == soc_sto_E_init)
         m.c1.add(m.soc_sto_E[i, h] >= soc_sto_E_init)
+
 
         for t in range(0, h):
             m.c1.add(m.soc_sto_E[i, t + 1] == m.soc_sto_E[i, t] + (m.P_sto_E_ch[i, t] * rend_sto_E - m.P_sto_E_dis[i, t] / rend_sto_E))
