@@ -23,6 +23,11 @@ def create_PV_variables(m: ConcreteModel, h: int, number_resources: int) -> Conc
 
     m.Planning_P_PV = Var(arange(number_resources), domain=NonNegativeReals)
     m.b_Planning_P_PV = Var(arange(number_resources), domain=Binary)
+    m.soc_PV_to_storage = Var(arange(h), domain=NonNegativeReals)
+
+    m.P_PV_network = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
+    m.P_PV_storage = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
+    m.P_PV_EL = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
 
     return m
 
@@ -46,6 +51,10 @@ def create_storage_electrical_variables(m: ConcreteModel, h: int, number_resourc
     m.Planning_P_sto_E = Var(arange(number_resources), domain=NonNegativeReals)
     m.b_Planning_P_sto_E = Var(arange(number_resources), domain=Binary)
 
+    m.P_storage_EL = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
+    m.P_storage_network = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
+    m.P_network_storage = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
+    m.soc_PV_storage = Var(arange(number_resources), arange(h + 1), domain=NonNegativeReals)
     return m
 
 def create_electrolyzer_variables(m: ConcreteModel, h: int, number_resources: int) -> ConcreteModel:
@@ -68,6 +77,8 @@ def create_electrolyzer_variables(m: ConcreteModel, h: int, number_resources: in
     m.Planning_P_EL_E = Var(arange(number_resources), domain=NonNegativeReals)
     m.b_Planning_P_EL_E = Var(arange(number_resources), domain=Binary)
 
+    m.P_network_EL = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
+
     return m
 
 
@@ -82,6 +93,8 @@ def create_fuel_cell_variables(m: ConcreteModel, h: int, number_resources: int) 
 
     m.Planning_P_FC_E = Var(arange(number_resources), domain=NonNegativeReals)
     m.b_Planning_P_FC_E = Var(arange(number_resources), domain=Binary)
+
+
 
     return m
 
@@ -114,6 +127,8 @@ def create_objective_function_variables(m: ConcreteModel, h: int, number_resourc
     m.D_E = Var(arange(h), domain=NonNegativeReals)
     m.P_H2 = Var(arange(h), domain=NonNegativeReals)
     m.P_NH3 = Var(arange(h), domain=NonNegativeReals)
+
+    m.P_E_real = Var(arange(h), domain=Reals)
 
     return m
 
