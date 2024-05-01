@@ -21,6 +21,9 @@ def create_PV_variables(m: ConcreteModel, h: int, number_resources: int) -> Conc
     m.U_PV = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
     m.D_PV = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
 
+    m.Planning_P_PV = Var(arange(number_resources), domain=NonNegativeReals)
+    m.b_Planning_P_PV = Var(arange(number_resources), domain=Binary)
+
     return m
 
 def create_storage_electrical_variables(m: ConcreteModel, h: int, number_resources: int) -> ConcreteModel:
@@ -38,6 +41,10 @@ def create_storage_electrical_variables(m: ConcreteModel, h: int, number_resourc
     m.D_sto_E_dis = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
     m.b_sto_E = Var(arange(number_resources), arange(h), domain=Binary)
     m.b_sto_E_space = Var(arange(number_resources), arange(h), domain=Binary)
+
+    m.Planning_soc_sto_E = Var(arange(number_resources), domain=NonNegativeReals)
+    m.Planning_P_sto_E = Var(arange(number_resources), domain=NonNegativeReals)
+    m.b_Planning_P_sto_E = Var(arange(number_resources), domain=Binary)
 
     return m
 
@@ -58,6 +65,9 @@ def create_electrolyzer_variables(m: ConcreteModel, h: int, number_resources: in
     m.U_EL_load = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
     m.D_EL_load = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
 
+    m.Planning_P_EL_E = Var(arange(number_resources), domain=NonNegativeReals)
+    m.b_Planning_P_EL_E = Var(arange(number_resources), domain=Binary)
+
     return m
 
 
@@ -70,6 +80,9 @@ def create_fuel_cell_variables(m: ConcreteModel, h: int, number_resources: int) 
     m.U_FC_E = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
     m.D_FC_E = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
 
+    m.Planning_P_FC_E = Var(arange(number_resources), domain=NonNegativeReals)
+    m.b_Planning_P_FC_E = Var(arange(number_resources), domain=Binary)
+
     return m
 
 
@@ -80,6 +93,10 @@ def create_storage_H2_variables(m: ConcreteModel, h: int, number_resources: int)
     m.P_sto_H2_dis = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
     m.P_sto_H2_market = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
     m.P_sto_H2_load = Var(arange(number_resources), arange(h), domain=NonNegativeReals)
+
+    m.Planning_soc_sto_H2 = Var(arange(number_resources), domain=NonNegativeReals)
+    m.Planning_P_sto_H2 = Var(arange(number_resources), domain=NonNegativeReals)
+    m.b_Planning_soc_sto_H2 = Var(arange(number_resources), domain=Binary)
 
     return m
 

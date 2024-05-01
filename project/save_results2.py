@@ -41,7 +41,7 @@ def save_results2(m: ConcreteModel(), h: int, case_nr: int, prices: dict, resour
         except:
             iter = iter + 1
 
-        excel_colouring(f'Data/results_v{iter}.xlsx')
+    excel_colouring(f'Data/results_v{iter}.xlsx')
 
 def excel_colouring(excel_file):
     # Load the Excel file
@@ -68,6 +68,20 @@ def excel_colouring(excel_file):
             for cell in ws[column]:
                 if any(string in column_zero for string in ['PV', 'EL']):
                     cell.fill = openpyxl.styles.PatternFill(start_color='a4ffa4', end_color='a4ffa4', fill_type='solid')
+                elif any(string in column_zero for string in ['sto_H2']):
+                    cell.fill = openpyxl.styles.PatternFill(start_color='99CCFF', end_color='99CCFF', fill_type='solid')
+                elif any(string in column_zero for string in ['FC']):
+                    cell.fill = openpyxl.styles.PatternFill(start_color='FDE9D9', end_color='FDE9D9', fill_type='solid')
 
     # Save the changes to the Excel file
-    wb.save(excel_file)
+    flag_excel = 1
+    iter = 0
+    while flag_excel > 0:
+        try:
+            wb.save(f'Data/results_v{iter}.xlsx')
+            #results.to_excel(f'Data/results_v{iter}.xlsx', float_format='%.1f')
+            flag_excel = 0
+        except:
+            print(iter)
+            iter = iter + 1
+

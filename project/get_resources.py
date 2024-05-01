@@ -1,13 +1,13 @@
 from numpy import *
-from pyomo.environ import *
 import pandas as pd
 from pathlib import Path
-import json
+from xlrd import *
+
 
 INPUT_DIR = Path(__file__).parent.parent / "data_input"
 
 
-def get_resources(case_nr: int) -> dict:
+def get_resources(hours: int) -> dict:
     ''' Get resources data '''
 
     electrical_storage = {'efficiency': 0.9,
@@ -20,7 +20,7 @@ def get_resources(case_nr: int) -> dict:
 
 
     PV =            {"max_power": 40000 * 0.5,              # kW
-                     "PV_profile": get_PV_profile(case_nr)}  # profile (%)
+                     "PV_profile": get_PV_profile()}  # profile (%)
 
 
 
@@ -47,10 +47,11 @@ def get_resources(case_nr: int) -> dict:
                         }
 
     fuel_cell = {'efficiency': 0.6,
-                 'max_power': 10000}
+                 'max_power': 10000,
+                 'transformation_factor': 0.03}  # 0.03 kgH2/kW at 100% efficiency
 
 
-    load_ammonia = [4200 for i in range(0, 24)]
+    load_hydrogen = get_load_profile(hours)
 
     resources = {       'PV': PV,
                         'electrical_storage': electrical_storage,
@@ -60,52 +61,33 @@ def get_resources(case_nr: int) -> dict:
                         'hydrogen_storage': hydrogen_storage,
 
 
-                        'load_ammonia': load_ammonia
+                        'load_hydrogen': load_hydrogen
                  }
 
     return resources
 
 
 
-def get_PV_profile(case_nr) -> list:
+def get_PV_profile() -> list:
     ''' Load PV data from JSON and read the swflx values'''
 
-    if case_nr == 1:
-        ''' Gets the data from JSON and transforms it '''
-        with open(INPUT_DIR / "Montijo.json", encoding='utf-8') as inputfile:
-            df = pd.read_json(inputfile)
-
-        PV_profile = []
-        PV_profile_data = []
-        test_date = df['data'][0]['datetime']
-        for i in range(0, len(df)):
-            if 1:
-                if df['data'][i]['datetime']  != test_date and df['data'][i]['datetime'][0:4] == '2022':
-                    test_date = df['data'][i]['datetime']
-                    PV_profile_data.append([df['data'][i]['datetime'][0:10],
-                                            df['data'][i]['datetime'][11:],
-                                            df['data'][i]['variable']['swflx'],
-                                            df['data'][i]['variable']['swflx']/1030]) # 1030 is the maximum swflx, used to
-                                                                                      # put PV in percentage
-                    PV_profile.append(df['data'][i]['variable']['swflx'])
-        PV_profile.append(0)
-        pd.DataFrame(PV_profile_data).to_csv(INPUT_DIR / 'PV_profile_data.csv')
-
-        PV_profile = [i/max(PV_profile) for i in PV_profile]
-
-    elif case_nr == 2:
-        ''' Loads the data from excel file '''
-        df = pd.read_csv(INPUT_DIR / 'PV_profile_data_short.csv')
-        PV_profile = df['2'].values.tolist()
-        PV_profile = [i/max(PV_profile) for i in PV_profile]
-        PV_profile.reverse()
-    else:
-        ''' Loads the data from excel file '''
-        df = pd.read_csv(INPUT_DIR / 'PV_profile_data_4days.csv')
-        PV_profile = df['2'].values.tolist()
-        PV_profile = [i/max(PV_profile) for i in PV_profile]
-        PV_profile.reverse()
+    df = pd.read_csv(INPUT_DIR / 'PV_profile_data_8days.csv')
+    PV_profile = df['2'].values.tolist()
+    PV_profile = [i / max(PV_profile) for i in PV_profile]
 
     print(PV_profile)
     print(max(PV_profile))
     return PV_profile
+
+def get_load_profile(h: int) -> list:
+    ''' Load PV data from JSON and read the swflx values'''
+
+    book_networks = INPUT_DIR / "Hydrogen_load_8days.xls"
+    wb_networks = open_workbook(book_networks)
+    xl_sheet = wb_networks.sheet_by_index(0)
+
+    hydrogen_load = [xl_sheet.cell(1 + t, 2).value for t in range(0, h)]
+
+    print("hydrogen_load", hydrogen_load)
+    print(max(hydrogen_load))
+    return hydrogen_load
